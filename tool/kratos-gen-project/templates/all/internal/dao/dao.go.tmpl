@@ -1,0 +1,35 @@
+package dao
+
+import (
+	"context"
+	"github.com/google/wire"
+	"github.com/jinzhu/gorm"
+	"kratos/pkg/cache/xredis"
+)
+
+var Provider = wire.NewSet(New, NewDB, NewRedis)
+
+// dao dao.
+type Dao struct {
+	db     *gorm.DB
+	XRedis *xredis.Client
+}
+
+// New new a dao and return.
+func New(r *xredis.Client, db *gorm.DB) (d *Dao, cf func(), err error) {
+	d = &Dao{
+		XRedis: r,
+		db:     db,
+	}
+
+	cf = d.Close
+	return
+}
+
+// Close close the resource.
+func (d *Dao) Close() {}
+
+// Ping ping the resource.
+func (d *Dao) Ping(ctx context.Context) (err error) {
+	return nil
+}

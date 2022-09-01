@@ -1,0 +1,57 @@
+package api
+
+import (
+	"context"
+	"fmt"
+	"kratos/pkg/net/rpc/warden"
+
+	"kratos/pkg/conf/paladin"
+	"kratos/pkg/naming/nacos"
+	"kratos/pkg/naming/nacosgrpc"
+	"kratos/pkg/naming/nacosgrpc/balancer/weightedroundrobin"
+
+	"google.golang.org/grpc"
+)
+
+// AppID .
+const AppID = "{{.ModPrefix}}{{.Name}}"
+
+type Client struct {
+	MonitorClient MonitorClient
+	/*********  Add Grpc Client *************/
+
+}
+
+// NewClient new grpc client
+func NewClient() (*Client, error) {
+	cfg := nacos.RpcxConf{}
+	err := paladin.Get("nacos.toml").UnmarshalTOML(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	client := warden.NewClient(nil)
+	conn, err := client.Dial(context.Background(),
+		nacosgrpc.Target(
+			fmt.Sprintf("http://nacos:nacos@%s:8848/nacos", cfg.NacosServer.IpAddr),
+			"",
+			"DEFAULT_GROUP",
+			AppID,
+		),
+		grpc.WithDefaultServiceConfig(
+			fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, weightedroundrobin.Name),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cli := &Client{}
+	cli.MonitorClient = NewMonitorClient(conn)
+	/************ Add Client ***************/
+
+	return cli, err
+}
+
+// 生成 gRPC 代码
+//go:generate kratos tool protoc --grpc --bm api.proto

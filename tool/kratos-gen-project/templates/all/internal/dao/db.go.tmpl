@@ -1,0 +1,24 @@
+package dao
+
+import (
+	"kratos/pkg/conf/paladin"
+	"kratos/pkg/database/orm"
+
+	"github.com/jinzhu/gorm"
+)
+
+func NewDB() (db *gorm.DB, cf func(), err error) {
+	var (
+		cfg orm.Config
+		ct paladin.TOML
+	)
+	if err = paladin.Get("db.toml").Unmarshal(&ct); err != nil {
+		return
+	}
+	if err = ct.Get("Client").UnmarshalTOML(&cfg); err != nil {
+		return
+	}
+	db = orm.NewMySQL(&cfg)
+	cf = func() {db.Close()}
+	return
+}
